@@ -1,5 +1,9 @@
+@import 'styles';
+
 .App {
+  @extend .flex-column;
   text-align: center;
+  height: 100vh;
 }
 
 .App-logo {

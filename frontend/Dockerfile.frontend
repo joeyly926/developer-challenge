@@ -1,0 +1,26 @@
+ARG NODE_VERSION=14.15.1
+
+FROM node:${NODE_VERSION}-alpine as builder
+RUN apk update
+RUN apk add --no-cache --virtual .gyp python make g++\
+  && rm -rf /var/cache/apk/*
+WORKDIR /app
+
+COPY . .
+
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+RUN npm install
+RUN rm -rf node_modules/mongodb-prebuilt
+
+# tool for waiting
+ENV DOCKERIZE_VERSION v0.6.1
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+
+RUN chown node:node /app
+USER node
+ENV NODE_ENV local
+EXPOSE 3000 3000
+CMD [ "npm", "run", "start" ]

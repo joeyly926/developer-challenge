@@ -1,0 +1,62 @@
+version: '3.4'
+services:
+  # backend:
+  #   container_name: backend
+  #   stdin_open: true # docker run -i
+  #   tty: true        # docker run -t
+  #   build:
+  #     context: ./backend
+  #     dockerfile: ./Dockerfile.backend
+  #   command: sh -c "dockerize -wait tcp://db:27017 -timeout 300s -wait-retry-interval 5s /bin/sh -c 'npm run watch'"
+  #   volumes:
+  #     - ./backend/index.js:/app/index.js
+  #     - ./backend/utils:/app/utils
+  #     - ./backend/contracts:/app/contracts
+  #   ports:
+  #     - "4000:4000"
+  #   links:
+  #     - "db:mongodb"
+  #   depends_on:
+  #     - db
+  # frontend:
+  #   container_name: frontend
+  #   stdin_open: true # docker run -i
+  #   tty: true        # docker run -t
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: ./Dockerfile.frontend
+  #   command: sh -c "npm start"
+  #   volumes:
+  #     - ./frontend/src:/app/src
+  #   ports:
+  #     - "3000:3000"
+  mongo:
+    container_name: mongodb
+    hostname: mongodb
+    image: mongo:3.6
+    environment:
+      MONGO_INITDB_DATABASE: db
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      # local data is stored here
+      - ./db/datastore:/data/db
+      # initialization script for mongo. can be used to create collections, etc.
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      # Docker image needs a home directory to prevent this issue https://github.com/docker-library/mongo/issues/323
+      - ./db/home:/home/mongodb
+    dns:
+      - localhost
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    # comment this out to see MongoDB logs
+    logging:
+      driver: "none"
+networks:
+  mongo:
+    name: mongo
